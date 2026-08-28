@@ -1,0 +1,41 @@
+name: Build iOS IPA (non firmato)
+
+# Produce un file .ipa NON firmato dell'app, scaricabile come artifact.
+# Serve per installarla su iPhone tramite un tool di sideload come
+# Sideloadly (o AltStore), che la firma con un Apple ID gratuito e la
+# installa via cavo USB, senza bisogno di un Mac.
+
+on:
+  push:
+    branches:
+      - claude/bus-km-counter-nl8jtu
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Compila l'app iOS senza firma
+        run: flutter build ios --release --no-codesign
+
+      - name: Impacchetta il file .ipa
+        run: |
+          set -e
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -qr ContaChilometri.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ContaChilometri-ipa
+          path: build/ios/iphoneos/ContaChilometri.ipa
+          retention-days: 30
